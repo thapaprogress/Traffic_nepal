@@ -25,6 +25,8 @@ PLATE_MIN_VEHICLE_WIDTH = 80    # skip vehicles narrower than this (too far away
 PLATE_MAX_OCR_PER_FRAME = 5    # limit OCR calls per frame for performance
 PLATE_CACHE_TTL_SECONDS = 30   # how long to cache a plate reading per track_id
 PLATE_VEHICLE_CROP_RATIO = 0.4 # crop bottom 40% of vehicle bbox for plate
+PLATE_VOTE_READS = 5           # max OCR reads per vehicle before locking result
+PLATE_MIN_CONFIDENCE = 0.30    # ignore OCR reads below this confidence
 
 # ─── Lazy OCR loader ──────────────────────────────────────────────────────────
 _ocr_reader = None
@@ -62,43 +64,86 @@ class PlateResult:
     plate_crop:   Optional[np.ndarray] = None
 
 
-# ─── Plate Cache (one reading per track_id) ───────────────────────────────────
+# ─── Plate Cache with Multi-Read Voting ───────────────────────────────────────
 class PlateCache:
-    """Caches plate readings by track_id to avoid repeated OCR on same vehicle."""
+    """
+    Accumulates multiple OCR reads per track_id and keeps the most-voted
+    (confidence-weighted) plate text. This is far more accurate than trusting
+    the first noisy read — the same plate is read across several frames and
+    the consensus result wins.
+    """
 
-    def __init__(self, ttl: float = PLATE_CACHE_TTL_SECONDS):
-        self._cache: Dict[int, Tuple[str, float, float]] = {}  # track_id → (text, conf, timestamp)
+    def __init__(self, ttl: float = PLATE_CACHE_TTL_SECONDS,
+                 max_reads: int = PLATE_VOTE_READS):
+        # track_id → dict(votes={text: total_conf}, counts={text: n}, reads, locked, ts, best, best_conf)
+        self._data: Dict[int, dict] = {}
         self._ttl = ttl
+        self._max_reads = max_reads
+
+    def _best(self, entry: dict) -> Tuple[str, float]:
+        votes = entry["votes"]
+        if not votes:
+            return ("", 0.0)
+        best_text = max(votes, key=votes.get)
+        # average confidence for that text
+        avg_conf = votes[best_text] / max(entry["counts"][best_text], 1)
+        return (best_text, round(avg_conf, 2))
+
+    def add_read(self, track_id: int, text: str, confidence: float):
+        """Register one OCR read (a 'vote') for a vehicle."""
+        if confidence < PLATE_MIN_CONFIDENCE or not text:
+            return
+        # Bound cache size
+        if len(self._data) > 1000:
+            oldest = min(self._data.items(), key=lambda kv: kv[1]["ts"])[0]
+            del self._data[oldest]
+        entry = self._data.get(track_id)
+        if entry is None:
+            entry = {"votes": {}, "counts": {}, "reads": 0,
+                     "locked": False, "ts": time.time()}
+            self._data[track_id] = entry
+        entry["votes"][text] = entry["votes"].get(text, 0.0) + confidence
+        entry["counts"][text] = entry["counts"].get(text, 0) + 1
+        entry["reads"] += 1
+        entry["ts"] = time.time()
+        if entry["reads"] >= self._max_reads:
+            entry["locked"] = True
 
     def get(self, track_id: int) -> Optional[str]:
-        """Return cached plate text if still valid, else None."""
-        if track_id in self._cache:
-            text, conf, ts = self._cache[track_id]
-            if time.time() - ts < self._ttl:
-                return text
-            else:
-                del self._cache[track_id]
-        return None
+        """Return current best plate text (or None if no valid reads / expired)."""
+        entry = self._data.get(track_id)
+        if entry is None:
+            return None
+        if time.time() - entry["ts"] > self._ttl:
+            del self._data[track_id]
+            return None
+        text, _ = self._best(entry)
+        return text or None
 
+    def needs_more_reads(self, track_id: int) -> bool:
+        """True if this vehicle should still be OCR'd (not locked yet)."""
+        entry = self._data.get(track_id)
+        if entry is None:
+            return True
+        return not entry["locked"]
+
+    # Back-compat shim used by AsyncOCRWorker
     def put(self, track_id: int, text: str, confidence: float):
-        # Bound cache size — evict oldest if over 1000 entries
-        if len(self._cache) > 1000:
-            oldest = min(self._cache.items(), key=lambda kv: kv[1][2])[0]
-            del self._cache[oldest]
-        self._cache[track_id] = (text, confidence, time.time())
+        self.add_read(track_id, text, confidence)
 
     def get_all(self) -> Dict[int, str]:
-        """Return all active cache entries as {track_id: plate_text}."""
+        """Return {track_id: best_plate_text} for all active entries."""
         now = time.time()
-        active = {}
-        stale = []
-        for tid, (text, conf, ts) in self._cache.items():
-            if now - ts < self._ttl:
-                active[tid] = text
+        active, stale = {}, []
+        for tid, entry in self._data.items():
+            if now - entry["ts"] < self._ttl:
+                text, _ = self._best(entry)
+                if text:
+                    active[tid] = text
             else:
                 stale.append(tid)
         for tid in stale:
-            del self._cache[tid]
+            del self._data[tid]
         return active
 
 
@@ -203,7 +248,7 @@ def prepare_plate_crops(detections, frame):
     for veh in vehicles:
         if (veh.x2 - veh.x1) < PLATE_MIN_VEHICLE_WIDTH:
             continue
-        if cache.get(veh.track_id):   # already read — skip
+        if not cache.needs_more_reads(veh.track_id):   # voting locked — skip
             continue
 
         # Stage 1: overlapping plate detection

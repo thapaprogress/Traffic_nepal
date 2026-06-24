@@ -216,6 +216,74 @@ class AlertDispatcher:
         self._counts_cache_ts = now
         return dict(counts)
 
+    # ─── Data Retention / Cleanup (#6) ─────────────────────────────────────────
+
+    def cleanup(self, retention_days: float = 7.0,
+                purge_orphan_snapshots: bool = True) -> dict:
+        """
+        Delete DB rows older than `retention_days` and remove snapshot files
+        that are no longer referenced. Returns a summary of what was removed.
+        """
+        cutoff = time.time() - retention_days * 86400
+        summary = {"violations": 0, "traffic_stats": 0,
+                   "plate_reads": 0, "snapshots": 0}
+        with self._lock:
+            cur = self._db_conn.cursor()
+            # Collect snapshot paths about to be deleted
+            cur.execute("SELECT image_path FROM violations WHERE detected_at < ?", (cutoff,))
+            old_imgs = [r[0] for r in cur.fetchall() if r[0]]
+
+            cur.execute("DELETE FROM violations WHERE detected_at < ?", (cutoff,))
+            summary["violations"] = cur.rowcount
+            cur.execute("DELETE FROM traffic_stats WHERE recorded_at < ?", (cutoff,))
+            summary["traffic_stats"] = cur.rowcount
+            cur.execute("DELETE FROM plate_reads WHERE detected_at < ?", (cutoff,))
+            summary["plate_reads"] = cur.rowcount
+            self._db_conn.commit()
+            cur.execute("VACUUM")
+
+        # Remove the snapshot files for deleted rows
+        for p in old_imgs:
+            try:
+                if p and os.path.isfile(p):
+                    os.remove(p)
+                    summary["snapshots"] += 1
+            except OSError:
+                pass
+
+        # Optionally purge orphan snapshots (files not referenced by any row)
+        if purge_orphan_snapshots:
+            with self._lock:
+                cur = self._db_conn.cursor()
+                cur.execute("SELECT image_path FROM violations WHERE image_path != ''")
+                referenced = {os.path.basename(r[0]) for r in cur.fetchall() if r[0]}
+            if os.path.isdir(SNAPSHOT_DIR):
+                for fname in os.listdir(SNAPSHOT_DIR):
+                    if fname.endswith((".jpg", ".png")) and fname not in referenced:
+                        try:
+                            os.remove(os.path.join(SNAPSHOT_DIR, fname))
+                            summary["snapshots"] += 1
+                        except OSError:
+                            pass
+        # invalidate counts cache
+        self._counts_cache = {}
+        self._counts_cache_ts = 0.0
+        return summary
+
+    def db_stats(self) -> dict:
+        """Return row counts + DB file size for monitoring."""
+        with self._lock:
+            cur = self._db_conn.cursor()
+            stats = {}
+            for tbl in ("violations", "traffic_stats", "plate_reads"):
+                cur.execute(f"SELECT COUNT(*) FROM {tbl}")
+                stats[tbl] = cur.fetchone()[0]
+        try:
+            stats["db_size_mb"] = round(os.path.getsize(DB_PATH) / 1e6, 2)
+        except OSError:
+            stats["db_size_mb"] = 0.0
+        return stats
+
 
 # Singleton
 _dispatcher_instance = None

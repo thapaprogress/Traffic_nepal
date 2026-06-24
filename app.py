@@ -130,6 +130,25 @@ with st.sidebar:
     en_watchlist = st.checkbox("🚨 Stolen-Vehicle Watchlist", value=True)
 
     st.markdown("---")
+    st.markdown("#### 💾 Camera Profile")
+    from config.camera_profiles import save_profile, load_profile, list_profiles
+    _profiles = list_profiles()
+    if _profiles:
+        sel_prof = st.selectbox("Load saved profile", ["(none)"] + list(_profiles.keys()))
+        if sel_prof != "(none)" and st.button("📂 Load Profile"):
+            p = load_profile(sel_prof)
+            st.session_state["loaded_profile"] = p
+            st.success(f"Loaded '{sel_prof}'. Adjust below, then Start.")
+    if st.button("💾 Save Current Profile"):
+        save_profile(cam_name or "cam_01", {
+            "name": cam_name, "location": cam_loc,
+            "line_y_a": line_a, "line_y_b": line_b,
+            "speed_limit": int(speed_limit),
+            "allowed_direction_deg": {"Up":0.0,"Right":90.0,"Down":180.0,"Left":270.0}.get(allowed_dir,180.0),
+        })
+        st.success(f"Saved profile '{cam_name}'")
+
+    st.markdown("---")
     st.markdown("#### 📍 Camera Info")
     cam_name = st.text_input("Camera Name", "Kalanki Chowk")
     cam_loc  = st.text_input("Location", "Kathmandu, Nepal")
@@ -332,6 +351,21 @@ with tab_violations:
             entries = wl_sys.get_all()
             if entries:
                 st.dataframe(pd.DataFrame(entries), use_container_width=True, height=160)
+
+        # ── Data retention / cleanup (#6) ──────────────────────────────────
+        with st.expander("🧹 Data Retention & Cleanup", expanded=False):
+            from alerts.alert_dispatcher import get_dispatcher as _gd
+            disp = _gd()
+            stats = disp.db_stats()
+            sc1, sc2, sc3, sc4 = st.columns(4)
+            sc1.metric("Violations", stats.get("violations", 0))
+            sc2.metric("Plate Reads", stats.get("plate_reads", 0))
+            sc3.metric("Traffic Stats", stats.get("traffic_stats", 0))
+            sc4.metric("DB Size (MB)", stats.get("db_size_mb", 0))
+            retain = st.number_input("Keep data newer than (days)", 1, 365, 7)
+            if st.button("🧹 Run Cleanup Now"):
+                removed = disp.cleanup(retention_days=retain)
+                st.success(f"Removed: {removed}")
 
         st.markdown("---")
         vtype = st.selectbox("Filter by type", ["ALL", "HELMET", "SPEED", "WRONG_LANE"])

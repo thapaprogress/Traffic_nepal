@@ -60,10 +60,11 @@ class AsyncOCRWorker:
     def submit(self, job: OCRJob) -> bool:
         """
         Submit a job. Returns False if dropped (queue full or already in-flight).
-        De-dups by track_id — won't queue the same vehicle twice.
+        De-dups by track_id — won't queue the same vehicle while a read is pending,
+        and stops once voting has locked the plate.
         """
         cache = get_plate_cache()
-        if cache.get(job.track_id):          # already read
+        if not cache.needs_more_reads(job.track_id):   # voting locked
             return False
         with self._lock:
             if job.track_id in self._inflight:

@@ -20,6 +20,10 @@ Thumbs.db
 # Streamlit secrets
 .streamlit/secrets.toml
 
+# SQLite WAL side-files (transient)
+*.db-wal
+*.db-shm
+
 # Runtime snapshots (generated at runtime, not committed)
 snapshots/*.jpg
 snapshots/*.png

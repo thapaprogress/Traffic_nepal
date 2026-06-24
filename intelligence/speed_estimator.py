@@ -49,6 +49,7 @@ class SpeedEstimator:
         speed_limit_kmh: float = SPEED_LIMIT_KMH,
         source_fps: float = 25.0,
         stale_frames: int = 300,   # expire un-completed crossings after N frames
+        perspective=None,          # optional PerspectiveMapper for accurate distance
     ):
         self.line_y_a        = line_y_a
         self.line_y_b        = line_y_b
@@ -56,9 +57,12 @@ class SpeedEstimator:
         self.speed_limit_kmh = speed_limit_kmh
         self.source_fps      = max(source_fps, 1.0)
         self.stale_frames    = stale_frames
+        self.perspective     = perspective
 
         # track_id → (frame_index when crossing Line A)
         self._enter_frames: Dict[int, int] = {}
+        # track_id → center point at Line A crossing (for perspective distance)
+        self._enter_points: Dict[int, Tuple[int, int]] = {}
         # track_id → previous center-y (to detect crossing direction)
         self._prev_cy: Dict[int, int] = {}
         # completed speed records
@@ -80,7 +84,7 @@ class SpeedEstimator:
                 continue
             tid = d.track_id
             seen_ids.add(tid)
-            _, cy = d.center
+            cx, cy = d.center
             prev_cy = self._prev_cy.get(tid)
             self._prev_cy[tid] = cy
 
@@ -90,13 +94,21 @@ class SpeedEstimator:
             # Crossed Line A downward (entering speed zone)
             if prev_cy < self.line_y_a <= cy:
                 self._enter_frames[tid] = frame_index
+                self._enter_points[tid] = (cx, cy)
 
             # Crossed Line B downward (exiting speed zone)
             if prev_cy < self.line_y_b <= cy and tid in self._enter_frames:
                 frames_elapsed = frame_index - self._enter_frames.pop(tid)
+                enter_pt = self._enter_points.pop(tid, (cx, self.line_y_a))
                 if frames_elapsed > 0:
                     seconds = frames_elapsed / self.source_fps
-                    speed_ms  = self.real_distance_m / seconds
+                    # Use perspective (homography) distance if calibrated,
+                    # else the fixed line distance.
+                    if self.perspective is not None:
+                        distance_m = self.perspective.world_distance(enter_pt, (cx, cy))
+                    else:
+                        distance_m = self.real_distance_m
+                    speed_ms  = distance_m / seconds
                     speed_kmh = speed_ms * 3.6
                     # Sanity clamp — reject absurd readings
                     if 1.0 <= speed_kmh <= 250.0:
@@ -120,6 +132,7 @@ class SpeedEstimator:
                  if frame_index - f > self.stale_frames]
         for tid in stale:
             self._enter_frames.pop(tid, None)
+            self._enter_points.pop(tid, None)
         # Drop prev-positions of vehicles not seen this frame and not pending
         gone = [tid for tid in self._prev_cy
                 if tid not in seen_ids and tid not in self._enter_frames]

@@ -11,6 +11,9 @@ streamlit>=1.32.0
 plotly>=5.18.0
 pandas>=2.0.0
 
+# Testing
+pytest>=8.0.0
+
 # Tracking (pure Python — no extra install needed, built-in)
 # For real ByteTrack: pip install lapx && git clone https://github.com/ifzhang/ByteTrack
 

@@ -18,6 +18,7 @@ from api.routers.stats import router as stats_router
 from api.routers.stream import router as stream_router
 from api.routers.reports import router as reports_router
 from api.routers.auth import router as auth_router
+from api.routers.health import router as health_router
 
 # ─── App ──────────────────────────────────────────────────────────────────────
 app = FastAPI(
@@ -48,6 +49,7 @@ app.include_router(stats_router)
 app.include_router(stream_router)
 app.include_router(reports_router)
 app.include_router(auth_router)
+app.include_router(health_router)
 
 # ─── Events ───────────────────────────────────────────────────────────────────
 @app.on_event("startup")
