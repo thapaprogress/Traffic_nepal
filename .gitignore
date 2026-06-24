@@ -6,20 +6,6 @@ __pycache__/
 venv/
 env/
 
-# Models & weights (large)
-weights/
-*.pt
-*.onnx
-*.engine
-*.tflite
-
-# Database & snapshots (runtime data)
-*.db
-*.db-wal
-*.db-shm
-snapshots/*.jpg
-snapshots/*.png
-
 # Node / frontend
 frontend/node_modules/
 frontend/.next/
@@ -31,9 +17,13 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Streamlit
+# Streamlit secrets
 .streamlit/secrets.toml
 
-# Keep folder structure
+# Runtime snapshots (generated at runtime, not committed)
+snapshots/*.jpg
+snapshots/*.png
 !snapshots/.gitkeep
-!weights/.gitkeep
+
+# NOTE: model weights (weights/) and the database (traffic_eye.db)
+# ARE intentionally committed via Git LFS so the repo is self-contained.

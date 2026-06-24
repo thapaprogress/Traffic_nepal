@@ -127,13 +127,22 @@ CCTV / RTSP / Video / Webcam
 ### Prerequisites
 - Python 3.10+ (tested on 3.12)
 - pip
+- **[Git LFS](https://git-lfs.com/)** — required to download the bundled model weights
 - (Optional) NVIDIA GPU + CUDA for acceleration
 
-### 1. Clone the repository
+### 1. Clone the repository (with Git LFS)
 ```bash
+# Install Git LFS first (one-time): https://git-lfs.com
+git lfs install
+
 git clone https://github.com/thapaprogress/Traffic_nepal.git
 cd Traffic_nepal
+
+# If weights didn't download automatically:
+git lfs pull
 ```
+
+> **Note:** Model weights (`weights/*.pt`, `*.pth`, `*.tflite`) and the sample database are bundled via **Git LFS**, so the repo is fully self-contained — no manual model download needed.
 
 ### 2. Install dependencies
 ```bash
@@ -148,11 +157,13 @@ pip install "numpy<2"
 ```
 
 ### 3. Download the YOLO-World model
-The first run auto-downloads `yolov8s-worldv2.pt`. To pre-place it:
-```bash
-mkdir weights
-# place yolov8s-worldv2.pt inside weights/  (or let Ultralytics fetch it)
-```
+The model weights are **already bundled** via Git LFS in `weights/`:
+- `yolov8s-worldv2.pt` — default zero-shot model (used by the dashboard)
+- `yolo_world_v2_s_obj365v1_goldg_pretrain-55b943ea.pth` — pretrained for fine-tuning
+- `yolo_world_x_coco_zeroshot_rep_integer_quant.tflite` — INT8 TFLite sample
+- `clip_vit_b32_coco_80_embeddings.npy` — COCO CLIP embeddings
+
+If `weights/` is empty after cloning, run `git lfs pull`.
 
 ### 4. Run the dashboard
 ```bash

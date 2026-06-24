@@ -10,10 +10,11 @@ import os
 # ─── Paths ────────────────────────────────────────────────────────────────────
 BASE_DIR      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SNAPSHOT_DIR  = os.path.join(BASE_DIR, "snapshots")
-WEIGHTS_DIR   = os.path.join(BASE_DIR, "..", "weights")   # shared with YOLO_Projects
+WEIGHTS_DIR   = os.path.join(BASE_DIR, "weights")         # bundled with repo
 DB_PATH       = os.path.join(BASE_DIR, "traffic_eye.db")  # SQLite for MVP
 
 os.makedirs(SNAPSHOT_DIR, exist_ok=True)
+os.makedirs(WEIGHTS_DIR, exist_ok=True)
 
 # ─── YOLO-World Model ─────────────────────────────────────────────────────────
 YOLO_WEIGHTS  = os.path.join(WEIGHTS_DIR, "yolov8s-worldv2.pt")
