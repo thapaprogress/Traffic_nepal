@@ -249,21 +249,26 @@ traffic_nepal/
 ## ✅ Completed Work
 
 - [x] Real-time open-vocabulary detection (YOLO-World)
-- [x] Multi-object tracking with persistent IDs
-- [x] Helmet violation detection (multi-frame confirmed)
-- [x] License plate recognition (async, vehicle-linked)
-- [x] Frame-accurate speed estimation
+- [x] Multi-object tracking with persistent IDs + real ByteTrack integration (with IoU tracker fallback)
+- [x] Helmet violation detection (multi-frame confirmed to prevent false positives)
+- [x] License plate recognition (async, vehicle-linked EasyOCR)
+- [x] Nepal license plate normalization and positional digit/letter correction rules
+- [x] Frame-accurate speed estimation (virtual two-line timing)
 - [x] Congestion (ROI) analysis
 - [x] Wrong-lane / wrong-direction detection
 - [x] Stolen-vehicle watchlist + management UI
-- [x] Night-time frame enhancement
-- [x] SQLite storage (WAL, indexed, deduped) + snapshots
+- [x] Night-time frame enhancement (CLAHE low-light enhancement)
+- [x] SQLite storage (WAL, indexed, deduped) + snapshots & automatic database retention maintenance panel
+- [x] MinIO / S3 object storage integration for snapshots (with local directory fallback)
+- [x] Leaflet map view with camera pins color-coded by congestion level (Next.js components)
+- [x] Redis Pub/Sub scaling event bus integration (publishing stats and violations)
+- [x] Alembic database migrations and versioning schema
+- [x] Nepal Traffic dataset fine-tuning pipeline: `utils/frame_extractor.py`, `utils/train_yolo.py`, and `ANNOTATION_GUIDELINES.md` / `CLOUD_TRAINING_GUIDE.md`
 - [x] Streamlit live dashboard (3 tabs)
 - [x] FastAPI backend (REST + WebSocket)
-- [x] React/Next.js frontend scaffold
+- [x] React/Next.js frontend dashboard
 - [x] Docker Compose + Dockerfiles
-- [x] GPU auto-detection
-- [x] 2 GB upload support
+- [x] GPU auto-detection & 2 GB video upload support
 
 ---
 
@@ -271,16 +276,12 @@ traffic_nepal/
 
 These require a CUDA GPU (e.g. RTX 4080) — see [`TODO_GPU_TASKS.md`](TODO_GPU_TASKS.md) for step-by-step instructions.
 
-| Task | Description | Benefit |
-|---|---|---|
-| **TensorRT FP16 export** | `python deploy/export_engine.py --format engine --half` | 3–6 → 35–50 FPS |
-| **Nepal dataset fine-tuning** | Train on Kathmandu CCTV (helmet, microbus, tempo, plates) | Much higher accuracy |
-| **Real ByteTrack / BoT-SORT** | Kalman-filter tracker | Fewer ID switches under occlusion |
-| **PaddleOCR backend** | Swap/compare OCR engine | Better Nepali plate reads |
-| **MinIO / S3 snapshots** | Object storage for snapshots | Scales beyond local disk |
-| **Leaflet map view** | Camera pins colored by congestion | City-wide visualization |
-| **Redis pub/sub scaling** | Multi-intersection event bus | 20–50 cameras |
-| **Alembic migrations** | PostgreSQL schema versioning | Production DB upgrades |
+| Task | Description | Benefit | Status |
+|---|---|---|---|
+| **TensorRT FP16 export** | `python deploy/export_engine.py --format engine --half` | 3–6 → 35–50 FPS | Ready for GPU |
+| **Nepal dataset fine-tuning** | Train on Kathmandu CCTV using custom classes | Higher accuracy | Pipeline ready, training pending GPU |
+| **PaddleOCR backend** | Swap/compare OCR engine | Better Nepali plate reads | Planned |
+
 
 ### GPU Quick Start (when available)
 ```bash
