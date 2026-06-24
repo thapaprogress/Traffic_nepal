@@ -1,0 +1,28 @@
+# Traffic Eye Nepal — Phase 1 MVP Requirements
+# Install with: pip install -r traffic_nepal/requirements.txt
+
+# Core AI
+ultralytics>=8.0.0
+opencv-python>=4.9.0
+numpy>=1.24.0
+
+# Dashboard
+streamlit>=1.32.0
+plotly>=5.18.0
+pandas>=2.0.0
+
+# Tracking (pure Python — no extra install needed, built-in)
+# For real ByteTrack: pip install lapx && git clone https://github.com/ifzhang/ByteTrack
+
+# OCR (Phase 2 — uncomment when ready)
+# easyocr>=1.7.0
+
+# Backend (Phase 2)
+# fastapi>=0.110.0
+# uvicorn>=0.29.0
+# sqlalchemy>=2.0.0
+# psycopg2-binary>=2.9.0
+
+# Alerts (Phase 2)
+# twilio>=8.0.0
+# Pillow>=10.0.0

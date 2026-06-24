@@ -1,0 +1,60 @@
+{
+  "description": "Traffic Eye Nepal - Custom detection classes for fine-tuning YOLO-World",
+  "version": "1.0",
+  "classes": [
+    "motorcycle",
+    "car",
+    "bus",
+    "truck",
+    "microbus",
+    "tempo",
+    "electric rickshaw",
+    "bicycle",
+    "person",
+    "helmet",
+    "no helmet",
+    "license plate",
+    "traffic police",
+    "overloaded vehicle",
+    "school bus"
+  ],
+  "nepal_specific_classes": [
+    "microbus",
+    "tempo",
+    "electric rickshaw",
+    "overloaded vehicle"
+  ],
+  "violation_classes": [
+    "no helmet",
+    "overloaded vehicle"
+  ],
+  "annotation_guide": {
+    "tools": ["Roboflow (cloud)", "CVAT (self-hosted)"],
+    "min_images_per_class": 2000,
+    "recommended_total": 15000,
+    "image_sources": [
+      "KMC CCTV footage (request access)",
+      "Public intersection recordings (Kalanki, Koteshwor, Tinkune)",
+      "Dashcam recordings in Kathmandu",
+      "Google Street View Nepal screenshots"
+    ],
+    "labeling_format": "YOLO (txt files, normalized coords)"
+  },
+  "fine_tuning_config": {
+    "base_model": "yolov8s-worldv2.pt",
+    "method": "reparameterized",
+    "epochs": 80,
+    "batch_size": 16,
+    "image_size": 640,
+    "learning_rate": 0.0002,
+    "augmentation": {
+      "mosaic": 0.5,
+      "mixup": 0.1,
+      "hsv_h": 0.015,
+      "hsv_s": 0.5,
+      "hsv_v": 0.4,
+      "flipud": 0.0,
+      "fliplr": 0.5
+    }
+  }
+}

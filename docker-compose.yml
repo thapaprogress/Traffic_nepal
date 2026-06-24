@@ -1,0 +1,68 @@
+version: "3.9"
+
+services:
+  # ─── AI Inference + Streamlit Dashboard ────────────────────────────────
+  inference:
+    build:
+      context: .
+      dockerfile: Dockerfile.inference
+    ports:
+      - "8502:8502"
+    volumes:
+      - ./snapshots:/app/snapshots
+      - ./weights:/app/weights
+    environment:
+      - YOLO_WEIGHTS=/app/weights/yolov8s-worldv2.pt
+    restart: unless-stopped
+
+  # ─── FastAPI Backend ───────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./snapshots:/app/snapshots
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - DATABASE_URL=postgresql://traffic:traffic123@postgres:5432/traffic_eye
+      - REDIS_URL=redis://redis:6379/0
+    restart: unless-stopped
+
+  # ─── PostgreSQL ────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: traffic
+      POSTGRES_PASSWORD: traffic123
+      POSTGRES_DB: traffic_eye
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # ─── Redis (cache + task queue) ────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  # ─── Nginx Reverse Proxy (optional) ───────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+      - inference
+    restart: unless-stopped
+
+volumes:
+  pgdata:

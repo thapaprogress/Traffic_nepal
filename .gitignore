@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Models & weights (large)
+weights/
+*.pt
+*.onnx
+*.engine
+*.tflite
+
+# Database & snapshots (runtime data)
+*.db
+*.db-wal
+*.db-shm
+snapshots/*.jpg
+snapshots/*.png
+
+# Node / frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Keep folder structure
+!snapshots/.gitkeep
+!weights/.gitkeep
