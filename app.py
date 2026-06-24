@@ -498,15 +498,50 @@ with tab_stats:
         else:
             st.info("No analytics data yet. Run detection to populate charts.")
 
+        # ── DB Status & Maintenance ────────────────────────────────────────
+        with st.expander("🗄️ Database Status & Maintenance", expanded=False):
+            try:
+                db_info = dispatcher.db_stats()
+                d1, d2, d3, d4 = st.columns(4)
+                d1.metric("Violations",   db_info.get("violations", 0))
+                d2.metric("Traffic Stats", db_info.get("traffic_stats", 0))
+                d3.metric("Plate Reads",  db_info.get("plate_reads", 0))
+                d4.metric("DB Size (MB)", db_info.get("db_size_mb", 0.0))
+
+                st.markdown("---")
+                col_ret, col_btn = st.columns([3, 1])
+                with col_ret:
+                    retention = st.slider(
+                        "Retention period (days)",
+                        min_value=1, max_value=90, value=7,
+                        help="Delete records older than this many days"
+                    )
+                with col_btn:
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    if st.button("🧹 Clean Old Data", key="db_cleanup_btn",
+                                 help="Purge records older than retention period"):
+                        summary = dispatcher.cleanup(retention_days=float(retention))
+                        st.success(
+                            f"Removed: {summary['violations']} violations · "
+                            f"{summary['traffic_stats']} stats · "
+                            f"{summary['plate_reads']} plates · "
+                            f"{summary['snapshots']} snapshot files"
+                        )
+                        st.rerun()
+            except Exception as e:
+                st.warning(f"Could not load DB status: {e}")
+
     except Exception as e:
         st.warning(f"Analytics not available: {e}")
+
 
 # ─── Footer ───────────────────────────────────────────────────────────────────
 st.markdown("---")
 st.markdown("""
 <div style="text-align:center; color:#1e3a5f; padding:10px 0; font-size:0.82rem;">
   🚦 <strong style="color:#38bdf8;">Traffic Eye Nepal</strong> &nbsp;·&nbsp;
-  YOLO-World · ByteTrack · OpenCV · Streamlit &nbsp;·&nbsp;
-  Phase 1 MVP
+  YOLO-World · ByteTrack · EasyOCR · Redis · MinIO · Alembic &nbsp;·&nbsp;
+  Phase 2 Active &nbsp;|&nbsp; GPU Phase Pending
 </div>
 """, unsafe_allow_html=True)
+

@@ -41,3 +41,14 @@ def test_low_confidence_ignored():
     c = PlateCache(max_reads=5)
     c.add_read(3, "GARBAGE", 0.05)   # below PLATE_MIN_CONFIDENCE
     assert c.get(3) is None
+
+
+def test_positional_normalization():
+    # 4-segment format: BA 12 PA 4567
+    # Here, 12 has an 'I' instead of '1' and an 'O' instead of '0'.
+    assert normalize_plate_text("BA I2 PA O456") == "BA 12 PA 0456"
+    # 3-segment format: BA PA 12O4 (where O should be 0)
+    assert normalize_plate_text("BA PA I2O4") == "BA PA 1204"
+    # 2-segment format: BA I2O4
+    assert normalize_plate_text("BA I2O4") == "BA 1204"
+

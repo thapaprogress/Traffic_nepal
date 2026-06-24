@@ -7,7 +7,7 @@ Uses SQLite for Phase 2 MVP, swap connection string for PostgreSQL.
 
 from sqlalchemy import (
     create_engine, Column, Integer, String, Float,
-    Boolean, DateTime, func
+    Boolean, DateTime, func, UniqueConstraint
 )
 from sqlalchemy.orm import sessionmaker, declarative_base
 import sys, os
@@ -54,6 +54,31 @@ class TrafficStat(Base):
     vehicle_count    = Column(Integer, default=0)
     congestion_level = Column(String(10), default="LOW")
     recorded_at      = Column(Float, default=0.0)
+
+
+class PlateRead(Base):
+    __tablename__ = "plate_reads"
+    id             = Column(Integer, primary_key=True, index=True)
+    camera_id      = Column(String(50), index=True)
+    track_id       = Column(Integer, index=True)
+    vehicle_number = Column(String(50), default="")
+    confidence     = Column(Float, default=0.0)
+    location       = Column(String(200), default="")
+    detected_at    = Column(Float, default=0.0)
+
+    __table_args__ = (
+        UniqueConstraint("camera_id", "track_id", "vehicle_number", name="uq_camera_track_plate"),
+    )
+
+
+class WatchlistEntry(Base):
+    __tablename__ = "watchlist"
+    id       = Column(Integer, primary_key=True, index=True)
+    plate    = Column(String(50), unique=True, index=True)
+    reason   = Column(String(50), default="STOLEN")
+    added_at = Column(Float, default=0.0)
+    notes    = Column(String(500), default="")
+
 
 
 def init_db():

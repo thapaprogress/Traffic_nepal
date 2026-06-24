@@ -3,6 +3,9 @@ import axios from "axios";
 import CameraGrid from "../components/CameraGrid";
 import ViolationTable from "../components/ViolationTable";
 import { useAlertStream } from "../hooks/useWebSocket";
+import dynamic from "next/dynamic";
+
+const MapView = dynamic(() => import("../components/MapView"), { ssr: false });
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -47,11 +50,17 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Camera Grid */}
-        <section>
-          <h2 className="text-lg font-semibold text-gray-200 mb-3">📹 Live Cameras</h2>
-          <CameraGrid cameras={cameras} />
-        </section>
+        {/* Camera Grid & Map View */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <h2 className="text-lg font-semibold text-gray-200 mb-3">📹 Live Cameras</h2>
+            <CameraGrid cameras={cameras} />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-200 mb-3">📍 Camera Map View</h2>
+            <MapView cameras={cameras} />
+          </div>
+        </div>
 
         {/* Recent Alerts Ticker */}
         {alerts.length > 0 && (

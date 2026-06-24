@@ -1,0 +1,70 @@
+# Nepal Traffic Dataset — YOLO Fine-Tuning Configuration
+# Task 3.3 — YOLO-World Fine-Tuning on Nepal Traffic
+#
+# Dataset directory structure expected:
+#   data/nepal_traffic/
+#     images/
+#       train/   ← annotated training images (PNG/JPG)
+#       val/     ← validation images
+#     labels/
+#       train/   ← corresponding .txt YOLO label files
+#       val/
+#
+# Annotation format (YOLO):
+#   <class_id> <x_center> <y_center> <width> <height>
+#   all values normalised 0–1 relative to image dimensions
+#
+# Data collection targets:
+#   - Total: 5,000+ images from Kathmandu intersections
+#   - Coverage: diverse lighting (day/night/rain), angles, resolutions
+#   - Recommended sources: manual field collection + CCTV recordings
+#   - Annotation tool: LabelImg, Roboflow, or CVAT
+
+path: ./data/nepal_traffic       # root directory (relative to project root)
+train: images/train              # training images relative to `path`
+val:   images/val                # validation images relative to `path`
+
+nc: 15          # number of classes
+
+names:
+  0: motorcycle
+  1: car
+  2: bus
+  3: truck
+  4: microbus
+  5: tempo
+  6: electric rickshaw
+  7: bicycle
+  8: person
+  9: helmet
+  10: no helmet
+  11: license plate
+  12: traffic police
+  13: overloaded vehicle
+  14: school bus
+
+# ── Fine-tuning command (run after collecting + annotating data) ──────────────
+#
+#   yolo detect train \
+#       model=yolov8s-worldv2.pt \
+#       data=data/nepal_traffic.yaml \
+#       epochs=80 \
+#       imgsz=640 \
+#       batch=16 \
+#       device=0 \
+#       project=runs/nepal_traffic \
+#       name=finetune_v1 \
+#       amp=True
+#
+# ── Validation ────────────────────────────────────────────────────────────────
+#
+#   yolo detect val \
+#       model=runs/nepal_traffic/finetune_v1/weights/best.pt \
+#       data=data/nepal_traffic.yaml
+#
+# ── Export to TensorRT after training ─────────────────────────────────────────
+#
+#   python deploy/export_engine.py --format all --half
+#
+# ── Update config after fine-tuning ───────────────────────────────────────────
+#   Set YOLO_WEIGHTS in config/settings.py to point to the new best.pt

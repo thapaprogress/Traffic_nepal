@@ -181,7 +181,29 @@ def normalize_plate_text(text: str) -> str:
     text = text.upper().strip()
     text = re.sub(r"[^A-Z0-9]", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
-    return text
+    
+    segments = text.split(" ")
+    if len(segments) == 4:
+        segments[0] = correct_segment(segments[0], "letter")
+        segments[1] = correct_segment(segments[1], "digit")
+        segments[2] = correct_segment(segments[2], "letter")
+        segments[3] = correct_segment(segments[3], "digit")
+    elif len(segments) == 3:
+        segments[0] = correct_segment(segments[0], "letter")
+        if any(c.isdigit() for c in segments[1]):
+            segments[1] = correct_segment(segments[1], "digit")
+        else:
+            segments[1] = correct_segment(segments[1], "letter")
+        segments[2] = correct_segment(segments[2], "digit")
+    elif len(segments) == 2:
+        segments[0] = correct_segment(segments[0], "letter")
+        if any(c.isdigit() for c in segments[1]) or len(segments[1]) >= 3:
+            segments[1] = correct_segment(segments[1], "digit")
+        else:
+            segments[1] = correct_segment(segments[1], "letter")
+            
+    return " ".join(segments)
+
 
 
 # Char confusion maps for positional correction

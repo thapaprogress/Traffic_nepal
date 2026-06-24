@@ -2,7 +2,7 @@
 ## Complete these after you get GPU access (RTX 4080)
 
 **Last Updated:** June 24, 2026  
-**Status:** 30 of 36 Python files built | Phase 1 ✅ | Phase 2 ✅ | Phase 3 ~55%
+**Status:** 36 of 36 Python files built | Phase 1 ✅ | Phase 2 ✅ | Phase 3 ~70% (GPU tasks pending)
 
 ---
 
@@ -382,7 +382,7 @@ traffic_nepal/
 ├── detection/yoloworld_engine.py   ✅
 ├── ingest/stream_reader.py         ✅
 ├── ingest/camera_manager.py        ✅
-├── tracking/bytetrack_wrapper.py   ✅ (custom IoU — upgrade in Task 3.4)
+├── tracking/bytetrack_wrapper.py   ✅ (IoU fallback + real BYTETracker if installed — Task 3.4 ✅)
 ├── intelligence/
 │   ├── helmet_rule.py              ✅
 │   ├── congestion_monitor.py       ✅
@@ -393,10 +393,12 @@ traffic_nepal/
 │   └── watchlist.py               ✅ (Phase 3)
 ├── alerts/
 │   ├── alert_dispatcher.py        ✅
+│   ├── snapshot_store.py          ✅ (MinIO + local fallback — Task 3.8 ✅)
 │   └── sms_alert.py               ✅
 ├── workers/
 │   ├── pipeline.py                ✅
-│   └── celery_app.py             ✅ (Phase 3)
+│   ├── redis_broker.py           ✅ (Redis pub/sub — Task 3.12 ✅)
+│   └── celery_app.py             ✅ (async OCR queue)
 ├── api/
 │   ├── main.py                    ✅ (13 endpoints)
 │   ├── database.py                ✅
@@ -408,6 +410,8 @@ traffic_nepal/
 ├── Dockerfile.api                 ✅
 ├── Dockerfile.inference           ✅
 ├── nginx.conf                     ✅
+├── alembic.ini                    ✅ (database migrations — Task 3.13 ✅)
+├── data/nepal_traffic.yaml        ✅ (YOLO fine-tune config — Task 3.3, awaiting GPU)
 ├── data/nepal_traffic_classes.json ✅
 └── app.py (Streamlit MVP)         ✅
 ```
@@ -416,12 +420,12 @@ traffic_nepal/
 
 ## Checklist (print this and check off)
 
-- [ ] **3.3** Fine-tune YOLO-World on Nepal data
-- [ ] **3.4** Install real ByteTrack (`pip install lapx`)
-- [ ] **3.8** Setup MinIO + `alerts/snapshot_store.py`
-- [ ] **3.9** Leaflet MapView component
-- [ ] **3.12** Redis pub/sub broker (`workers/redis_broker.py`)
-- [ ] **3.13** Alembic migrations
+- [ ] **3.3** Fine-tune YOLO-World on Nepal data ← **BLOCKED: needs GPU + 5,000 annotated images**
+- [x] **3.4** Real ByteTrack integration with IoU fallback ← ✅ DONE
+- [x] **3.8** MinIO snapshot storage with local fallback ← ✅ DONE
+- [x] **3.9** Leaflet MapView component (React dashboard) ← ✅ DONE
+- [x] **3.12** Redis pub/sub event broker ← ✅ DONE
+- [x] **3.13** Alembic database migrations ← ✅ DONE
 
 ---
 
@@ -439,5 +443,6 @@ traffic_nepal/
 
 ---
 
-*Once you have GPU access, start with Task 3.3 (dataset + training) since that takes the longest.
-Tasks 3.4, 3.8, 3.9, 3.12, 3.13 can all be done in a single day.*
+*Tasks 3.4, 3.8, 3.9, 3.12, 3.13 are COMPLETE. The only remaining task is 3.3 which requires a GPU and manual data collection.*
+
+**Next Action:** Collect 5,000+ annotated images of Nepal traffic, then run fine-tuning once GPU is available. Use `data/nepal_traffic.yaml` for the dataset configuration.

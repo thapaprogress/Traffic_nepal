@@ -240,6 +240,16 @@ class CameraPipeline:
                         cong_state.vehicle_count,
                         cong_state.congestion_level
                     )
+                    # Redis publish stats (Task 3.12)
+                    try:
+                        from workers.redis_broker import publish_event
+                        publish_event("traffic:stats", {
+                            "camera_id": self.camera_id,
+                            "vehicle_count": cong_state.vehicle_count,
+                            "congestion": cong_state.congestion_level,
+                        })
+                    except Exception:
+                        pass
 
                 # ── Annotate frame (single copy, rest in-place — fix A13) ──
                 annotated = self.engine.annotate(frame, detections)

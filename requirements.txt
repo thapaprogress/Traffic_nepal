@@ -1,31 +1,51 @@
-# Traffic Eye Nepal — Phase 1 MVP Requirements
-# Install with: pip install -r traffic_nepal/requirements.txt
+# Traffic Eye Nepal — Requirements
+# Install with: pip install -r requirements.txt
+#
+# Grouped by Phase:
+#   Phase 1 (MVP)   — core detection & dashboard
+#   Phase 2 (Active) — OCR, backend API, alerts, storage, messaging
+#   Phase 3 (GPU)   — TensorRT, DeepStream, edge deployment
 
-# Core AI
+# ─── Core AI ──────────────────────────────────────────────────────────────────
 ultralytics>=8.0.0
 opencv-python>=4.9.0
 numpy>=1.24.0
+torch>=2.0.0         # auto-selects CUDA if GPU is present, CPU otherwise
 
-# Dashboard
+# ─── Dashboard ────────────────────────────────────────────────────────────────
 streamlit>=1.32.0
 plotly>=5.18.0
 pandas>=2.0.0
 
-# Testing
+# ─── Testing ──────────────────────────────────────────────────────────────────
 pytest>=8.0.0
 
-# Tracking (pure Python — no extra install needed, built-in)
-# For real ByteTrack: pip install lapx && git clone https://github.com/ifzhang/ByteTrack
+# ─── Backend API (Phase 2) ────────────────────────────────────────────────────
+fastapi>=0.110.0
+uvicorn>=0.29.0
+sqlalchemy>=2.0.0
+alembic>=1.13.0      # database migrations (Task 3.13)
+psycopg2-binary>=2.9.0  # PostgreSQL driver (production); SQLite used for MVP
 
-# OCR (Phase 2 — uncomment when ready)
-# easyocr>=1.7.0
+# ─── OCR (Phase 2) ────────────────────────────────────────────────────────────
+easyocr>=1.7.0       # CPU-capable; offloaded via Celery async worker (Fix A10)
 
-# Backend (Phase 2)
-# fastapi>=0.110.0
-# uvicorn>=0.29.0
-# sqlalchemy>=2.0.0
-# psycopg2-binary>=2.9.0
+# ─── Alerts & Storage (Phase 2) ───────────────────────────────────────────────
+twilio>=8.0.0        # SMS/WhatsApp violation alerts
+Pillow>=10.0.0       # image processing for alert thumbnails
+minio>=7.2.0         # MinIO/S3 snapshot object storage (Task 3.8)
 
-# Alerts (Phase 2)
-# twilio>=8.0.0
-# Pillow>=10.0.0
+# ─── Messaging / Event Bus (Phase 2) ─────────────────────────────────────────
+redis>=5.0.0         # Redis pub/sub broker (Task 3.12)
+celery>=5.3.0        # async OCR task queue (workers/celery_app.py)
+
+# ─── Tracking (Phase 2 / 3) ───────────────────────────────────────────────────
+# ByteTrack (optional, auto-detected at runtime with IoU fallback if missing):
+#   pip install lapx && git clone https://github.com/ifzhang/ByteTrack
+# BoT-SORT (future, needs GPU):
+#   pip install botsort
+
+# ─── GPU / TensorRT (Phase 3 — needs NVIDIA GPU) ─────────────────────────────
+# onnx>=1.14.0
+# onnxruntime-gpu>=1.17.0
+# tensorrt>=8.6.0    # install via NVIDIA TensorRT package, not PyPI

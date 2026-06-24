@@ -17,6 +17,7 @@ from typing import Optional
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import DB_PATH, SNAPSHOT_DIR, ALERT_SAVE_SNAPSHOTS, ALERT_SNAPSHOT_QUALITY
+from alerts.snapshot_store import upload_snapshot
 
 
 @dataclass
@@ -155,16 +156,21 @@ class AlertDispatcher:
             if ALERT_SAVE_SNAPSHOTS and snapshot_frame is not None:
                 ts = int(alert.timestamp * 1000)
                 fname = f"{alert.violation_type}_{alert.track_id}_{ts}.jpg"
-                fpath = os.path.join(SNAPSHOT_DIR, fname)
-                cv2.imwrite(fpath, snapshot_frame,
-                            [cv2.IMWRITE_JPEG_QUALITY, ALERT_SNAPSHOT_QUALITY])
-                alert.image_path = fpath
+                url_or_path = upload_snapshot(snapshot_frame, fname)
+                alert.image_path = url_or_path
 
             # DB write
             try:
                 self._insert_violation(alert)
             except Exception as e:
                 print(f"[AlertDispatcher] DB write error: {e}")
+
+            # Redis pub/sub publish (Task 3.12)
+            try:
+                from workers.redis_broker import publish_event
+                publish_event("traffic:violations", asdict(alert))
+            except Exception:
+                pass
 
             # Memory log
             self._log.append(asdict(alert))
